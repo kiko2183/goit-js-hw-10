@@ -1,0 +1,83 @@
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
+
+const datetimePicker = document.getElementById('datetime-picker');
+const startButton = document.querySelector('button[data-start]');
+const daysSpan = document.querySelector('[data-days]');
+const hoursSpan = document.querySelector('[data-hours]');
+const minutesSpan = document.querySelector('[data-minutes]');
+const secondsSpan = document.querySelector('[data-seconds]');
+let countdownInterval;
+let userSelectedDate;
+
+const options = {
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    const selectedDate = selectedDates[0];
+    if (selectedDate <= new Date()) {
+      iziToast.error({
+        title: 'Error',
+        message: 'Please choose a date in the future',
+      });
+      startButton.disabled = true;
+    } else {
+      userSelectedDate = selectedDate;
+      startButton.disabled = false;
+    }
+  },
+};
+
+flatpickr(datetimePicker, options);
+
+startButton.addEventListener('click', startCountdown);
+
+function startCountdown() {
+  startButton.disabled = true;
+  datetimePicker.disabled = true;
+
+  countdownInterval = setInterval(() => {
+    const now = new Date();
+    const timeLeft = userSelectedDate - now;
+
+    if (timeLeft <= 0) {
+      clearInterval(countdownInterval);
+      datetimePicker.disabled = false;
+      updateTimerDisplay(0, 0, 0, 0);
+      iziToast.info({ title: 'Success', message: 'Countdown finished' });
+      return;
+    }
+
+    const { days, hours, minutes, seconds } = convertMs(timeLeft);
+    updateTimerDisplay(days, hours, minutes, seconds);
+  }, 1000);
+}
+
+function convertMs(ms) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+
+  const days = Math.floor(ms / day);
+  const hours = Math.floor((ms % day) / hour);
+  const minutes = Math.floor(((ms % day) % hour) / minute);
+  const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+
+  return { days, hours, minutes, seconds };
+}
+
+function updateTimerDisplay(days, hours, minutes, seconds) {
+  daysSpan.textContent = addLeadingZero(days);
+  hoursSpan.textContent = addLeadingZero(hours);
+  minutesSpan.textContent = addLeadingZero(minutes);
+  secondsSpan.textContent = addLeadingZero(seconds);
+}
+
+function addLeadingZero(value) {
+  return value < 10 ? '0' + value : value;
+}
